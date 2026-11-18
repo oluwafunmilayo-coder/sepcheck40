@@ -1,0 +1,95 @@
+use crate::types::{Asset, OracleMetadata, PriceData};
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+#[derive(Error, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConformanceViolation {
+    #[error("Non-monotonic timestamp sequence: previous {prev}, current {curr}")]
+    NonMonotonicTimestamp { prev: u64, curr: u64 },
+
+    #[error("Zero or negative price detected for asset '{asset}': price={price}")]
+    InvalidPriceValue { asset: String, price: i128 },
+
+    #[error("Zero resolution configured; resolution must be positive number of seconds")]
+    ZeroResolution,
+
+    #[error("Unsupported decimal precision: {decimals} (expected 0 < decimals <= 18)")]
+    InvalidDecimals { decimals: u32 },
+
+    #[error("Requested asset '{0}' not supported by oracle")]
+    AssetNotFound(String),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ConformanceReport {
+    pub total_checks: usize,
+    pub passed_checks: usize,
+    pub violations: Vec<ConformanceViolation>,
+}
+
+impl ConformanceReport {
+    pub fn is_conformant(&self) -> bool {
+        self.violations.is_empty()
+    }
+}
+
+pub struct ConformanceChecker;
+
+impl ConformanceChecker {
+    pub fn verify_metadata(meta: &OracleMetadata) -> ConformanceReport {
+        let mut report = ConformanceReport::default();
+        report.total_checks += 2;
+
+        if meta.resolution == 0 {
+            report.violations.push(ConformanceViolation::ZeroResolution);
+        } else {
+            report.passed_checks += 1;
+        }
+
+        if meta.decimals == 0 || meta.decimals > 18 {
+            report
+                .violations
+                .push(ConformanceViolation::InvalidDecimals { decimals: meta.decimals });
+        } else {
+            report.passed_checks += 1;
+        }
+
+        report
+    }
+
+    pub fn verify_price_series(asset: &Asset, records: &[PriceData]) -> ConformanceReport {
+        let mut report = ConformanceReport::default();
+
+        let mut last_timestamp = None;
+        for record in records {
+            report.total_checks += 2;
+
+            if record.price <= 0 {
+                report.violations.push(ConformanceViolation::InvalidPriceValue {
+                    asset: asset.to_string(),
+                    price: record.price,
+                });
+            } else {
+                report.passed_checks += 1;
+            }
+
+            if let Some(prev) = last_timestamp {
+                // Must be strictly descending or ascending
+                if record.timestamp <= prev {
+                    report.violations.push(ConformanceViolation::NonMonotonicTimestamp {
+                        prev,
+                        curr: record.timestamp,
+                    });
+                } else {
+                    report.passed_checks += 1;
+                }
+            } else {
+                report.passed_checks += 1;
+            }
+
+            last_timestamp = Some(record.timestamp);
+        }
+
+        report
+    }
+}
