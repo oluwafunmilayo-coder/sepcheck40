@@ -24,6 +24,9 @@ pub enum ConformanceViolation {
 
     #[error("Oracle cross-feed price divergence {divergence_bps} bps exceeds max tolerance {max_bps} bps")]
     PriceDivergenceExceeded { divergence_bps: u32, max_bps: u32 },
+
+    #[error("Oracle heartbeat exceeded: update gap of {interval_secs}s exceeds max allowed heartbeat of {max_heartbeat}s")]
+    HeartbeatExceeded { interval_secs: u64, max_heartbeat: u64 },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -140,6 +143,31 @@ impl ConformanceChecker {
             }
         } else {
             report.passed_checks += 1;
+        }
+
+        report
+    }
+
+    pub fn verify_heartbeat(
+        records: &[PriceData],
+        max_heartbeat_secs: u64,
+    ) -> ConformanceReport {
+        let mut report = ConformanceReport::default();
+        if records.len() < 2 {
+            return report;
+        }
+
+        for window in records.windows(2) {
+            report.total_checks += 1;
+            let gap = window[1].timestamp.saturating_sub(window[0].timestamp);
+            if gap > max_heartbeat_secs {
+                report.violations.push(ConformanceViolation::HeartbeatExceeded {
+                    interval_secs: gap,
+                    max_heartbeat: max_heartbeat_secs,
+                });
+            } else {
+                report.passed_checks += 1;
+            }
         }
 
         report
