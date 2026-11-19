@@ -1,9 +1,17 @@
 pub mod conformance;
 pub mod fault_injector;
 pub mod normalizer;
+pub mod outlier;
+pub mod twap;
 pub mod types;
 
 pub use conformance::{ConformanceChecker, ConformanceReport, ConformanceViolation};
 pub use fault_injector::FaultInjector;
 pub use normalizer::{DecimalNormalizer, NormalizationError};
+pub use outlier::OutlierFilter;
+pub use twap::TwapAggregator;
 pub use types::{Asset, OracleMetadata, PriceData};
+
+pub fn export_report_json(report: &ConformanceReport) -> Result<String, serde_json::Error> {
+    serde_json::to_string_pretty(report)
+}
