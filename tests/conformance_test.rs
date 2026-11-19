@@ -148,3 +148,34 @@ fn test_median_and_divergence_math() {
     let prices = vec![1000, 1050]; // (1050 - 1000) / 1000 = 50 / 1000 = 5% = 500 bps
     assert_eq!(DecimalNormalizer::compute_divergence_bps(&prices), Some(500));
 }
+
+#[test]
+fn test_heartbeat_violation_detection() {
+    let regular_feed = vec![
+        PriceData { price: 100_000, timestamp: 1000 },
+        PriceData { price: 100_500, timestamp: 1300 }, // 300s gap
+    ];
+    let rep_ok = ConformanceChecker::verify_heartbeat(&regular_feed, 300);
+    assert!(rep_ok.is_conformant());
+
+    let delayed_feed = vec![
+        PriceData { price: 100_000, timestamp: 1000 },
+        PriceData { price: 100_500, timestamp: 1500 }, // 500s gap > 300s
+    ];
+    let rep_err = ConformanceChecker::verify_heartbeat(&delayed_feed, 300);
+    assert!(!rep_err.is_conformant());
+    assert!(matches!(
+        rep_err.violations[0],
+        ConformanceViolation::HeartbeatExceeded { interval_secs: 500, max_heartbeat: 300 }
+    ));
+}
+
+#[test]
+fn test_conformance_report_json_export() {
+    let mut report = sepcheck40::ConformanceReport::default();
+    report.total_checks = 5;
+    report.passed_checks = 5;
+    let json_str = sepcheck40::export_report_json(&report).unwrap();
+    assert!(json_str.contains("\"total_checks\": 5"));
+    assert!(json_str.contains("\"passed_checks\": 5"));
+}
