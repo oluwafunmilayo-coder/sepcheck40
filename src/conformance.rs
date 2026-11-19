@@ -40,6 +40,10 @@ impl ConformanceReport {
     pub fn is_conformant(&self) -> bool {
         self.violations.is_empty()
     }
+
+    pub fn has_heartbeat_violations(&self) -> bool {
+        self.violations.iter().any(|v| matches!(v, ConformanceViolation::HeartbeatExceeded { .. }))
+    }
 }
 
 pub struct ConformanceChecker;
