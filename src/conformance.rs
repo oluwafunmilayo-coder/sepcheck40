@@ -18,6 +18,12 @@ pub enum ConformanceViolation {
 
     #[error("Requested asset '{0}' not supported by oracle")]
     AssetNotFound(String),
+
+    #[error("Stale oracle price detected: age={age}s exceeds threshold {max_allowed}s")]
+    StalePrice { age: u64, max_allowed: u64 },
+
+    #[error("Oracle cross-feed price divergence {divergence_bps} bps exceeds max tolerance {max_bps} bps")]
+    PriceDivergenceExceeded { divergence_bps: u32, max_bps: u32 },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -88,6 +94,52 @@ impl ConformanceChecker {
             }
 
             last_timestamp = Some(record.timestamp);
+        }
+
+        report
+    }
+
+    pub fn verify_freshness(
+        record: &PriceData,
+        current_time: u64,
+        max_staleness_secs: u64,
+    ) -> ConformanceReport {
+        let mut report = ConformanceReport::default();
+        report.total_checks += 1;
+
+        let age = current_time.saturating_sub(record.timestamp);
+        if age > max_staleness_secs {
+            report.violations.push(ConformanceViolation::StalePrice {
+                age,
+                max_allowed: max_staleness_secs,
+            });
+        } else {
+            report.passed_checks += 1;
+        }
+
+        report
+    }
+
+    pub fn verify_cross_feed_tolerance(
+        _asset: &Asset,
+        feeds: &[PriceData],
+        max_divergence_bps: u32,
+    ) -> ConformanceReport {
+        let mut report = ConformanceReport::default();
+        report.total_checks += 1;
+
+        let prices: Vec<i128> = feeds.iter().map(|f| f.price).collect();
+        if let Some(div_bps) = crate::normalizer::DecimalNormalizer::compute_divergence_bps(&prices) {
+            if div_bps > max_divergence_bps {
+                report.violations.push(ConformanceViolation::PriceDivergenceExceeded {
+                    divergence_bps: div_bps,
+                    max_bps: max_divergence_bps,
+                });
+            } else {
+                report.passed_checks += 1;
+            }
+        } else {
+            report.passed_checks += 1;
         }
 
         report
