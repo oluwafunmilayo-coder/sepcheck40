@@ -71,3 +71,80 @@ fn test_price_shock_fault_injection() {
     assert_eq!(shocked[0].price, 20_000);
     assert_eq!(shocked[1].price, 20_200);
 }
+
+#[test]
+fn test_stale_price_freshness_rejection() {
+    let now = 1700001000;
+    let fresh_feed = PriceData { price: 100_000, timestamp: 1700000950 }; // 50s old
+    let stale_feed = PriceData { price: 100_000, timestamp: 1700000500 }; // 500s old
+
+    let fresh_report = ConformanceChecker::verify_freshness(&fresh_feed, now, 300);
+    assert!(fresh_report.is_conformant());
+
+    let stale_report = ConformanceChecker::verify_freshness(&stale_feed, now, 300);
+    assert!(!stale_report.is_conformant());
+    assert!(matches!(
+        stale_report.violations[0],
+        ConformanceViolation::StalePrice { age: 500, max_allowed: 300 }
+    ));
+}
+
+#[test]
+fn test_cross_feed_divergence_detection() {
+    let asset = Asset::Other("ETH".to_string());
+    // 3 oracle feeds: 2000, 2010, 2015 -> max divergence is (2015-2000)/2000 = 15/2000 = 0.75% = 75 bps
+    let feeds_ok = vec![
+        PriceData { price: 2000_000000, timestamp: 1700000000 },
+        PriceData { price: 2010_000000, timestamp: 1700000000 },
+        PriceData { price: 2015_000000, timestamp: 1700000000 },
+    ];
+    let rep_ok = ConformanceChecker::verify_cross_feed_tolerance(&asset, &feeds_ok, 100); // 100 bps tolerance
+    assert!(rep_ok.is_conformant());
+
+    // Divergent feed: 2000 vs 2100 -> 500 bps divergence
+    let feeds_divergent = vec![
+        PriceData { price: 2000_000000, timestamp: 1700000000 },
+        PriceData { price: 2100_000000, timestamp: 1700000000 },
+    ];
+    let rep_err = ConformanceChecker::verify_cross_feed_tolerance(&asset, &feeds_divergent, 100);
+    assert!(!rep_err.is_conformant());
+    assert!(matches!(
+        rep_err.violations[0],
+        ConformanceViolation::PriceDivergenceExceeded { divergence_bps: 500, max_bps: 100 }
+    ));
+}
+
+#[test]
+fn test_decimal_normalizer_scaling() {
+    use sepcheck40::DecimalNormalizer;
+
+    // Scale 7 decimals (Stellar) to 14 decimals
+    let stellar_price = 12_5000000; // 12.5 XLM
+    let scaled = DecimalNormalizer::normalize(stellar_price, 7, 14).unwrap();
+    assert_eq!(scaled, 12_50000000000000);
+
+    // Downscale 14 to 7
+    let downscaled = DecimalNormalizer::normalize(scaled, 14, 7).unwrap();
+    assert_eq!(downscaled, stellar_price);
+
+    // Excess decimals error
+    let err = DecimalNormalizer::normalize(100, 19, 7).unwrap_err();
+    assert!(err.to_string().contains("exceeds maximum"));
+}
+
+#[test]
+fn test_median_and_divergence_math() {
+    use sepcheck40::DecimalNormalizer;
+
+    // Odd number of elements
+    let odd_prices = vec![100, 300, 200];
+    assert_eq!(DecimalNormalizer::compute_median(&odd_prices), Some(200));
+
+    // Even number of elements
+    let even_prices = vec![100, 200, 300, 400];
+    assert_eq!(DecimalNormalizer::compute_median(&even_prices), Some(250));
+
+    // Divergence basis points
+    let prices = vec![1000, 1050]; // (1050 - 1000) / 1000 = 50 / 1000 = 5% = 500 bps
+    assert_eq!(DecimalNormalizer::compute_divergence_bps(&prices), Some(500));
+}
