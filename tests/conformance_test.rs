@@ -192,3 +192,18 @@ fn test_triangular_cross_rate_parity() {
     assert!(!res_bad.is_consistent);
     assert!(res_bad.discrepancy_bps > 50);
 }
+
+#[test]
+fn test_feed_jitter_calculations() {
+    use sepcheck40::JitterAnalyzer;
+
+    let timestamps = vec![1000, 1010, 1025, 1030];
+    let metrics = JitterAnalyzer::calculate(&timestamps).expect("Sufficient sample size");
+    assert_eq!(metrics.sample_count, 3);
+    assert_eq!(metrics.mean_interval_seconds, 10.0);
+    assert_eq!(metrics.max_interval_seconds, 15);
+    assert_eq!(metrics.min_interval_seconds, 5);
+    assert!(metrics.jitter_variance > 0.0);
+
+    assert!(JitterAnalyzer::calculate(&[1000]).is_none());
+}
