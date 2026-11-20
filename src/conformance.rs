@@ -44,6 +44,22 @@ impl ConformanceReport {
     pub fn has_heartbeat_violations(&self) -> bool {
         self.violations.iter().any(|v| matches!(v, ConformanceViolation::HeartbeatExceeded { .. }))
     }
+
+    pub fn to_markdown_scorecard(&self) -> String {
+        let mut out = String::new();
+        out.push_str("# SEP-0040 Oracle Conformance Scorecard\n\n");
+        if self.is_conformant() {
+            out.push_str("Status: **COMPLIANT** ✅\n\n");
+            out.push_str("Oracle feed meets all freshness, monotonicity, and heartbeat requirements.\n");
+        } else {
+            out.push_str("Status: **NON-COMPLIANT** ⚠️\n\n");
+            out.push_str(&format!("Total Violations Detected: {}\n\n", self.violations.len()));
+            for (i, v) in self.violations.iter().enumerate() {
+                out.push_str(&format!("{}. {}\n", i + 1, v));
+            }
+        }
+        out
+    }
 }
 
 pub struct ConformanceChecker;
