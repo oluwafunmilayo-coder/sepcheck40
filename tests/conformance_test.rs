@@ -179,3 +179,16 @@ fn test_conformance_report_json_export() {
     assert!(json_str.contains("\"total_checks\": 5"));
     assert!(json_str.contains("\"passed_checks\": 5"));
 }
+
+#[test]
+fn test_triangular_cross_rate_parity() {
+    use sepcheck40::TriangularParityChecker;
+
+    let res_ok = TriangularParityChecker::verify(0.10, 0.90, 0.09, 50);
+    assert!(res_ok.is_consistent);
+    assert_eq!(res_ok.discrepancy_bps, 0);
+
+    let res_bad = TriangularParityChecker::verify(0.10, 0.90, 0.10, 50);
+    assert!(!res_bad.is_consistent);
+    assert!(res_bad.discrepancy_bps > 50);
+}
