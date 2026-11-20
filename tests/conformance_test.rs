@@ -207,3 +207,18 @@ fn test_feed_jitter_calculations() {
 
     assert!(JitterAnalyzer::calculate(&[1000]).is_none());
 }
+
+#[test]
+fn test_asset_symbol_normalization() {
+    use sepcheck40::Asset;
+
+    let stellar_asset = Asset::Stellar("  xlm  ".into());
+    assert_eq!(stellar_asset.normalized_symbol(), "XLM");
+    assert!(stellar_asset.matches_symbol("XLM"));
+    assert!(stellar_asset.matches_symbol("xlm"));
+    assert!(!stellar_asset.matches_symbol("USDC"));
+
+    let other_asset = Asset::Other("eurc".into());
+    assert_eq!(other_asset.normalized_symbol(), "EURC");
+    assert!(other_asset.matches_symbol("EURC"));
+}
