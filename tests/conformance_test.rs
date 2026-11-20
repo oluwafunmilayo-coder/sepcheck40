@@ -222,3 +222,16 @@ fn test_asset_symbol_normalization() {
     assert_eq!(other_asset.normalized_symbol(), "EURC");
     assert!(other_asset.matches_symbol("EURC"));
 }
+
+#[test]
+fn test_conformance_markdown_scorecard() {
+    let ok_report = sepcheck40::ConformanceReport::default();
+    let md_ok = ok_report.to_markdown_scorecard();
+    assert!(md_ok.contains("Status: **COMPLIANT**"));
+
+    let mut bad_report = sepcheck40::ConformanceReport::default();
+    bad_report.violations.push(sepcheck40::ConformanceViolation::ZeroResolution);
+    let md_bad = bad_report.to_markdown_scorecard();
+    assert!(md_bad.contains("Status: **NON-COMPLIANT**"));
+    assert!(md_bad.contains("Zero resolution"));
+}
