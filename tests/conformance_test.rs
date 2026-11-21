@@ -252,3 +252,17 @@ fn test_conformance_markdown_scorecard() {
     assert!(md_bad.contains("Status: **NON-COMPLIANT**"));
     assert!(md_bad.contains("Zero resolution"));
 }
+
+#[test]
+fn test_example_fixtures_oracle_feed_parsing() {
+    let feed_json = include_str!("../examples/fixtures/mock_oracle_feed.json");
+    let val: serde_json::Value = serde_json::from_str(feed_json).expect("valid feed JSON");
+    assert_eq!(val["base"], "XLM");
+    assert_eq!(val["decimals"], 7);
+
+    let ticks_json = include_str!("../examples/fixtures/price_ticks.json");
+    let ticks: Vec<serde_json::Value> = serde_json::from_str(ticks_json).expect("valid ticks JSON");
+    assert_eq!(ticks.len(), 3);
+    assert_eq!(ticks[0]["asset"], "USDC");
+}
+
