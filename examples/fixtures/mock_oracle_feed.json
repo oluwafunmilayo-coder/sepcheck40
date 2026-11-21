@@ -1,0 +1,11 @@
+{
+  "oracle_id": "CB_ORACLE_REF",
+  "base": "XLM",
+  "decimals": 7,
+  "resolution": 300,
+  "prices": [
+    {"price": 1250000, "timestamp": 1732180000},
+    {"price": 1255000, "timestamp": 1732180300},
+    {"price": 1260000, "timestamp": 1732180600}
+  ]
+}
