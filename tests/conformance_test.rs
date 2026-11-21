@@ -282,4 +282,18 @@ fn test_spread_validator_threshold_rules() {
     assert!(!res_inverted.is_acceptable);
 }
 
+#[test]
+fn test_conformance_csv_export_format() {
+    let mut report = sepcheck40::ConformanceReport::default();
+    report.passed_checks = 10;
+    let csv = report.to_csv();
+    assert!(csv.starts_with("check_category,passed,failed,is_conformant\n"));
+    assert!(csv.contains("oracle_conformance,10,0,true"));
+
+    report.violations.push(sepcheck40::ConformanceViolation::ZeroResolution);
+    let csv_bad = report.to_csv();
+    assert!(csv_bad.contains("oracle_conformance,10,1,false"));
+}
+
+
 
