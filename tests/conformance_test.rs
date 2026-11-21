@@ -19,6 +19,23 @@ fn test_valid_oracle_metadata() {
 }
 
 #[test]
+fn test_mutant_oracle_with_invalid_decimal_precision_is_rejected() {
+    let mutant_metadata = OracleMetadata {
+        base: Asset::Other("USD".to_string()),
+        decimals: 19,
+        resolution: 300,
+        assets: vec![Asset::Other("XLM".to_string())],
+    };
+
+    let report = ConformanceChecker::verify_metadata(&mutant_metadata);
+    assert!(!report.is_conformant());
+    assert!(report.violations.iter().any(|violation| matches!(
+        violation,
+        ConformanceViolation::InvalidDecimals { decimals: 19 }
+    )));
+}
+
+#[test]
 fn test_compliant_price_feed() {
     let asset = Asset::Other("XLM".to_string());
     let prices = vec![
