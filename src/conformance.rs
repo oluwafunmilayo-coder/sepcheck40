@@ -60,6 +60,18 @@ impl ConformanceReport {
         }
         out
     }
+
+    pub fn to_csv(&self) -> String {
+        let mut out = String::from("check_category,passed,failed,is_conformant\n");
+        let failed = self.violations.len();
+        out.push_str(&format!(
+            "oracle_conformance,{},{},{}\n",
+            self.passed_checks,
+            failed,
+            self.is_conformant()
+        ));
+        out
+    }
 }
 
 pub struct ConformanceChecker;
