@@ -266,3 +266,20 @@ fn test_example_fixtures_oracle_feed_parsing() {
     assert_eq!(ticks[0]["asset"], "USDC");
 }
 
+#[test]
+fn test_spread_validator_threshold_rules() {
+    use sepcheck40::SpreadValidator;
+
+    let res_ok = SpreadValidator::verify(10.0, 10.05, 100);
+    assert!(res_ok.is_acceptable);
+    assert!(res_ok.spread_bps <= 100);
+
+    let res_wide = SpreadValidator::verify(10.0, 10.50, 100);
+    assert!(!res_wide.is_acceptable);
+    assert!(res_wide.spread_bps > 100);
+
+    let res_inverted = SpreadValidator::verify(10.50, 10.0, 100);
+    assert!(!res_inverted.is_acceptable);
+}
+
+
