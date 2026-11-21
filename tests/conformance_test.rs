@@ -295,5 +295,16 @@ fn test_conformance_csv_export_format() {
     assert!(csv_bad.contains("oracle_conformance,10,1,false"));
 }
 
+#[test]
+fn test_sep40_cli_guide_exists_and_covers_checks() {
+    let guide_path = std::path::Path::new("docs/CLI_GUIDE.md");
+    assert!(guide_path.exists(), "docs/CLI_GUIDE.md should exist");
+    let content = std::fs::read_to_string(guide_path).expect("read CLI_GUIDE.md");
+    assert!(content.contains("# SEP-0040 Oracle Conformance Checker Guide"));
+    assert!(content.contains("--format csv"));
+    assert!(content.contains("Conformance Rules Verified"));
+}
+
+
 
 
