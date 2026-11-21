@@ -40,3 +40,37 @@ impl TriangularParityChecker {
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpreadCheckResult {
+    pub bid: f64,
+    pub ask: f64,
+    pub spread_bps: u32,
+    pub is_acceptable: bool,
+}
+
+pub struct SpreadValidator;
+
+impl SpreadValidator {
+    pub fn verify(bid: f64, ask: f64, max_spread_bps: u32) -> SpreadCheckResult {
+        if bid <= 0.0 || ask <= 0.0 || ask < bid {
+            return SpreadCheckResult {
+                bid,
+                ask,
+                spread_bps: 10_000,
+                is_acceptable: false,
+            };
+        }
+        let spread = ask - bid;
+        let mid = (ask + bid) / 2.0;
+        let spread_bps = ((spread / mid) * 10_000.0).round() as u32;
+
+        SpreadCheckResult {
+            bid,
+            ask,
+            spread_bps,
+            is_acceptable: spread_bps <= max_spread_bps,
+        }
+    }
+}
+

@@ -12,7 +12,7 @@ pub use fault_injector::FaultInjector;
 pub use metrics::{FeedJitterMetrics, JitterAnalyzer};
 pub use normalizer::{DecimalNormalizer, NormalizationError};
 pub use outlier::OutlierFilter;
-pub use parity::{ParityCheckResult, TriangularParityChecker};
+pub use parity::{ParityCheckResult, SpreadCheckResult, SpreadValidator, TriangularParityChecker};
 pub use twap::TwapAggregator;
 pub use types::{Asset, OracleMetadata, PriceData};
 
