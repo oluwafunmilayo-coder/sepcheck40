@@ -75,6 +75,37 @@ impl ConformanceReport {
         ));
         out
     }
+
+    pub fn to_sarif(&self) -> String {
+        let results: Vec<serde_json::Value> = self.violations.iter().map(|v| {
+            serde_json::json!({
+                "ruleId": "SEP40_001",
+                "level": "error",
+                "message": {
+                    "text": v.to_string()
+                }
+            })
+        }).collect();
+
+        let sarif = serde_json::json!({
+            "version": "2.1.0",
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "runs": [
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "sepcheck40",
+                            "version": env!("CARGO_PKG_VERSION"),
+                            "informationUri": "https://github.com/oluwafunmilayo-coder/sepcheck40"
+                        }
+                    },
+                    "results": results
+                }
+            ]
+        });
+
+        serde_json::to_string_pretty(&sarif).unwrap_or_else(|_| "{}".to_string())
+    }
 }
 
 pub struct ConformanceChecker;
