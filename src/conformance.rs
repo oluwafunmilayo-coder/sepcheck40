@@ -27,6 +27,9 @@ pub enum ConformanceViolation {
 
     #[error("Oracle heartbeat exceeded: update gap of {interval_secs}s exceeds max allowed heartbeat of {max_heartbeat}s")]
     HeartbeatExceeded { interval_secs: u64, max_heartbeat: u64 },
+
+    #[error("Sub-tick price granularity detected for asset '{asset}': price {price} does not align with minimum tick {min_tick}")]
+    SubPennyTickDisallowed { asset: String, price: i128, min_tick: i128 },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -131,6 +134,30 @@ impl ConformanceChecker {
             last_timestamp = Some(record.timestamp);
         }
 
+        report
+    }
+
+    pub fn verify_tick_granularity(
+        asset: &Asset,
+        records: &[PriceData],
+        min_tick: i128,
+    ) -> ConformanceReport {
+        let mut report = ConformanceReport::default();
+        if min_tick <= 0 {
+            return report;
+        }
+        for r in records {
+            report.total_checks += 1;
+            if r.price % min_tick != 0 {
+                report.violations.push(ConformanceViolation::SubPennyTickDisallowed {
+                    asset: asset.to_string(),
+                    price: r.price,
+                    min_tick,
+                });
+            } else {
+                report.passed_checks += 1;
+            }
+        }
         report
     }
 
