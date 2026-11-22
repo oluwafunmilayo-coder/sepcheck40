@@ -41,3 +41,20 @@ pub struct OracleMetadata {
     pub resolution: u32,
     pub assets: Vec<Asset>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ValidationProfile {
+    pub max_staleness_secs: u64,
+    pub max_spread_bps: u32,
+    pub min_tick: i128,
+}
+
+impl Default for ValidationProfile {
+    fn default() -> Self {
+        Self {
+            max_staleness_secs: 300,
+            max_spread_bps: 500,
+            min_tick: 1,
+        }
+    }
+}

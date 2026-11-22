@@ -14,7 +14,7 @@ pub use normalizer::{DecimalNormalizer, NormalizationError};
 pub use outlier::OutlierFilter;
 pub use parity::{ParityCheckResult, SpreadCheckResult, SpreadValidator, TriangularParityChecker};
 pub use twap::TwapAggregator;
-pub use types::{Asset, OracleMetadata, PriceData};
+pub use types::{Asset, OracleMetadata, PriceData, ValidationProfile};
 
 pub fn export_report_json(report: &ConformanceReport) -> Result<String, serde_json::Error> {
     serde_json::to_string_pretty(report)
