@@ -305,6 +305,25 @@ fn test_sep40_cli_guide_exists_and_covers_checks() {
     assert!(content.contains("Conformance Rules Verified"));
 }
 
+#[test]
+fn test_tick_granularity_validation() {
+    let asset = sepcheck40::Asset::Stellar("USDC".into());
+    let clean_records = vec![
+        sepcheck40::PriceData { price: 100_0000, timestamp: 1000 },
+        sepcheck40::PriceData { price: 100_5000, timestamp: 1060 },
+    ];
+    // Min tick 1000 (0.1 cent)
+    let ok = sepcheck40::ConformanceChecker::verify_tick_granularity(&asset, &clean_records, 1000);
+    assert!(ok.is_conformant());
+
+    let fractional_records = vec![
+        sepcheck40::PriceData { price: 100_0001, timestamp: 1000 },
+    ];
+    let bad = sepcheck40::ConformanceChecker::verify_tick_granularity(&asset, &fractional_records, 1000);
+    assert!(!bad.is_conformant());
+    assert_eq!(bad.violations.len(), 1);
+}
+
 
 
 
