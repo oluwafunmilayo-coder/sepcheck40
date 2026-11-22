@@ -336,6 +336,24 @@ fn test_sarif_export_format() {
     assert!(sarif_json.contains("Zero resolution configured"));
 }
 
+#[test]
+fn test_validation_profile_configuration() {
+    let default_prof = sepcheck40::ValidationProfile::default();
+    assert_eq!(default_prof.max_staleness_secs, 300);
+    assert_eq!(default_prof.max_spread_bps, 500);
+    assert_eq!(default_prof.min_tick, 1);
+
+    let custom_json = r#"{
+        "max_staleness_secs": 60,
+        "max_spread_bps": 200,
+        "min_tick": 100
+    }"#;
+    let custom: sepcheck40::ValidationProfile = serde_json::from_str(custom_json).expect("parse profile");
+    assert_eq!(custom.max_staleness_secs, 60);
+    assert_eq!(custom.max_spread_bps, 200);
+    assert_eq!(custom.min_tick, 100);
+}
+
 
 
 
