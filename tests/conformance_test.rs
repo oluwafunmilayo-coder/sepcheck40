@@ -324,6 +324,18 @@ fn test_tick_granularity_validation() {
     assert_eq!(bad.violations.len(), 1);
 }
 
+#[test]
+fn test_sarif_export_format() {
+    let mut report = sepcheck40::ConformanceReport::default();
+    report.violations.push(sepcheck40::ConformanceViolation::ZeroResolution);
+
+    let sarif_json = report.to_sarif();
+    assert!(sarif_json.contains("\"version\": \"2.1.0\""));
+    assert!(sarif_json.contains("\"name\": \"sepcheck40\""));
+    assert!(sarif_json.contains("\"ruleId\": \"SEP40_001\""));
+    assert!(sarif_json.contains("Zero resolution configured"));
+}
+
 
 
 
