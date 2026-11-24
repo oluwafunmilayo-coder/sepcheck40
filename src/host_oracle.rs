@@ -74,3 +74,23 @@ impl LendingConsumerContract {
         Some((collateral_units * quote.price) / 2)
     }
 }
+
+/// Intentionally vulnerable lending consumer that ignores oracle staleness and
+/// non-positive price guards — used as a negative control for resilience testing.
+#[contract]
+pub struct VulnerableLendingConsumer;
+
+#[contractimpl]
+impl VulnerableLendingConsumer {
+    pub fn unsafe_borrow_limit(
+        env: Env,
+        oracle_id: Address,
+        asset: Symbol,
+        collateral_units: i128,
+    ) -> Option<i128> {
+        let oracle = Sep40OracleContractClient::new(&env, &oracle_id);
+        let quote = oracle.lastprice(&asset)?;
+        // BUG: No staleness check and no non-positive price guard!
+        Some((collateral_units * quote.price) / 2)
+    }
+}

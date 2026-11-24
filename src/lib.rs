@@ -13,7 +13,7 @@ pub use conformance::{ConformanceChecker, ConformanceReport, ConformanceViolatio
 pub use fault_injector::FaultInjector;
 pub use host_oracle::{
     LendingConsumerContract, LendingConsumerContractClient, Sep40OracleContract,
-    Sep40OracleContractClient,
+    Sep40OracleContractClient, VulnerableLendingConsumer, VulnerableLendingConsumerClient,
 };
 pub use host_runner::{OracleResilienceOutcome, OracleResilienceReport, SorobanOracleRunner};
 pub use metrics::{FeedJitterMetrics, JitterAnalyzer};
