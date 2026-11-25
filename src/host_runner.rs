@@ -1,9 +1,16 @@
 use crate::host_oracle::{
     LendingConsumerContract, LendingConsumerContractClient, Sep40OracleContract,
-    Sep40OracleContractClient,
+    Sep40OracleContractClient, VulnerableLendingConsumer, VulnerableLendingConsumerClient,
 };
 use serde::{Deserialize, Serialize};
 use soroban_sdk::{symbol_short, testutils::Ledger, Env};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ComparativeAuditReport {
+    pub safe_consumer_blocked_stale: bool,
+    pub vulnerable_consumer_exploited: bool,
+    pub divergence_proven: bool,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OracleResilienceOutcome {
@@ -78,5 +85,33 @@ impl SorobanOracleRunner {
         });
 
         OracleResilienceReport { outcomes }
+    }
+
+    /// Run a comparative audit executing both the safe and vulnerable lending consumers
+    /// against the exact same stale oracle quote in a real Soroban host.
+    pub fn run_comparative_audit() -> ComparativeAuditReport {
+        let env = Env::default();
+        env.ledger().with_mut(|l| l.timestamp = 2_000_000);
+
+        let oracle_id = env.register(Sep40OracleContract, ());
+        let oracle = Sep40OracleContractClient::new(&env, &oracle_id);
+        oracle.init(&14, &300);
+
+        let xlm = symbol_short!("XLM");
+        oracle.set_price(&xlm, &500_000_000_000_000, &1_990_000); // Stale (> 300s)
+
+        let safe_id = env.register(LendingConsumerContract, ());
+        let safe = LendingConsumerContractClient::new(&env, &safe_id);
+        let safe_blocked = safe.safe_borrow_limit(&oracle_id, &xlm, &100, &300).is_none();
+
+        let vuln_id = env.register(VulnerableLendingConsumer, ());
+        let vuln = VulnerableLendingConsumerClient::new(&env, &vuln_id);
+        let vuln_exploited = vuln.unsafe_borrow_limit(&oracle_id, &xlm, &100).is_some();
+
+        ComparativeAuditReport {
+            safe_consumer_blocked_stale: safe_blocked,
+            vulnerable_consumer_exploited: vuln_exploited,
+            divergence_proven: safe_blocked && vuln_exploited,
+        }
     }
 }
